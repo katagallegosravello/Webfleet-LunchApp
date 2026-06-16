@@ -7,332 +7,370 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  :root {
-    --red: #ED1C24; --red-dark: #c0151b; --black: #000000; --white: #ffffff;
-    --gray-light: #CCCCCC; --gray-mid: #999999; --gray-dark: #333333;
-    --gray-bg: #f5f5f5; --gray-border: #e0e0e0;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; background: var(--gray-bg); color: var(--black); }
-
-  header { background: var(--black); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 1000; }
-  .logo { display: flex; align-items: center; gap: 12px; }
-  .logo-mark { width: 32px; height: 32px; background: var(--red); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 13px; letter-spacing: -0.5px; }
-  .logo-text { color: white; font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
-  .logo-sub { color: var(--gray-mid); font-size: 13px; font-weight: 400; margin-left: 4px; }
-  .header-badge { background: var(--red); color: white; font-size: 11px; padding: 3px 10px; border-radius: 2px; font-weight: 700; letter-spacing: 0.05em; }
-
-  main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
-  .hero { margin-bottom: 2rem; }
-  .hero h1 { font-size: 28px; font-weight: 700; color: var(--black); line-height: 1.2; }
-  .hero h1 span { color: var(--red); }
-  .hero p { color: var(--gray-dark); font-size: 14px; margin-top: 6px; }
-
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 2rem; }
-  .stat-card { background: white; border: 1px solid var(--gray-border); padding: 1.25rem 1.5rem; }
-  .stat-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-mid); font-weight: 700; margin-bottom: 6px; }
-  .stat-card .value { font-size: 26px; font-weight: 700; color: var(--black); line-height: 1; }
-  .stat-card .value.red { color: var(--red); }
-  .stat-card .sub { font-size: 12px; color: var(--gray-mid); margin-top: 4px; }
-
-  .tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 2px solid var(--gray-border); }
-  .tab-btn { padding: 10px 20px; font-size: 13px; font-weight: 700; cursor: pointer; background: none; border: none; color: var(--gray-mid); letter-spacing: 0.03em; text-transform: uppercase; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: color .15s; }
-  .tab-btn:hover { color: var(--black); }
-  .tab-btn.active { color: var(--red); border-bottom-color: var(--red); }
-
-  .panel { display: none; }
-  .panel.active { display: block; }
-
-  .lb-list { display: flex; flex-direction: column; gap: 12px; }
-  .lb-card { background: white; border: 1px solid var(--gray-border); padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1.25rem; }
-  .lb-card.first { border-left: 4px solid var(--red); }
-  .lb-rank { font-size: 28px; font-weight: 700; width: 40px; flex-shrink: 0; text-align: center; }
-  .lb-info { flex: 1; }
-  .lb-name { font-size: 18px; font-weight: 700; color: var(--black); }
-  .lb-meta { font-size: 12px; color: var(--gray-mid); margin-top: 2px; }
-  .lb-bars { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
-  .bar-item .bar-label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--gray-mid); font-weight: 700; margin-bottom: 3px; display: flex; justify-content: space-between; }
-  .bar-track { height: 4px; background: var(--gray-light); }
-  .bar-fill { height: 4px; background: var(--red); }
-  .lb-score-box { text-align: right; flex-shrink: 0; }
-  .lb-score { font-size: 40px; font-weight: 700; color: var(--black); line-height: 1; }
-  .lb-score-label { font-size: 11px; color: var(--gray-mid); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
-
-  .rest-selector { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
-  .rest-btn { padding: 7px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; background: white; border: 1px solid var(--gray-border); color: var(--gray-dark); transition: all .15s; }
-  .rest-btn.active { background: var(--red); color: white; border-color: var(--red); }
-  .scores-wrap { background: white; border: 1px solid var(--gray-border); overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead th { background: var(--black); color: white; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
-  thead th:not(:first-child) { text-align: center; }
-  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--gray-border); color: var(--black); }
-  tbody td:not(:first-child) { text-align: center; }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: #fafafa; }
-  .name-cell { font-weight: 700; }
-  .avg-pill { display: inline-block; padding: 3px 10px; font-weight: 700; font-size: 12px; }
-  .avg-hi { background: #1a1a1a; color: white; }
-  .avg-mid { background: var(--gray-dark); color: white; }
-  .avg-lo { background: var(--gray-light); color: var(--black); }
-  tfoot td { background: var(--gray-bg); font-weight: 700; font-size: 12px; padding: 10px 14px; border-top: 2px solid var(--black); color: var(--black); }
-  tfoot td:not(:first-child) { text-align: center; color: var(--red); }
-
-  #map { height: 420px; border: 1px solid var(--gray-border); margin-bottom: 1rem; }
-  .map-legend { background: white; border: 1px solid var(--gray-border); padding: 1rem 1.5rem; }
-  .map-legend h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--gray-mid); font-weight: 700; margin-bottom: 10px; }
-  .legend-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
-  .legend-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--red); flex-shrink: 0; margin-top: 2px; }
-  .legend-name { font-size: 13px; font-weight: 700; }
-  .legend-addr { font-size: 11px; color: var(--gray-mid); }
-  .legend-score { font-size: 13px; font-weight: 700; color: var(--red); margin-left: auto; white-space: nowrap; }
-
-  .form-card { background: white; border: 1px solid var(--gray-border); padding: 1.5rem; margin-bottom: 1rem; }
-  .form-card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--gray-mid); margin-bottom: 1rem; border-bottom: 1px solid var(--gray-border); padding-bottom: .5rem; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
-  .form-group { display: flex; flex-direction: column; gap: 4px; }
-  .form-group label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; color: var(--gray-dark); }
-  .form-group input { padding: 8px 10px; border: 1px solid var(--gray-border); font-size: 13px; font-family: Arial, sans-serif; color: var(--black); background: white; }
-  .form-group input:focus { outline: 2px solid var(--red); border-color: var(--red); }
-  .col-headers { display: grid; grid-template-columns: 130px 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 6px; }
-  .col-headers span { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--gray-mid); text-align: center; }
-  .col-headers span:first-child { text-align: left; }
-  .person-rows { display: flex; flex-direction: column; gap: 6px; }
-  .person-row { display: grid; grid-template-columns: 130px 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; }
-  .person-row .pname { font-size: 13px; font-weight: 700; color: var(--black); }
-  .person-row input { padding: 7px 8px; border: 1px solid var(--gray-border); font-size: 14px; font-weight: 700; text-align: center; font-family: Arial, sans-serif; width: 100%; color: var(--black); }
-  .person-row input:focus { outline: 2px solid var(--red); }
-  .submit-btn { background: var(--red); color: white; border: none; padding: 11px 28px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; margin-top: 1rem; }
-  .submit-btn:hover { background: var(--red-dark); }
-  .hint { font-size: 11px; color: var(--gray-mid); margin-top: 6px; }
-
-  footer { text-align: center; padding: 2rem; font-size: 11px; color: var(--gray-mid); border-top: 1px solid var(--gray-border); margin-top: 2rem; background: white; }
-  footer strong { color: var(--red); }
-
-  @media (max-width: 600px) {
-    .form-grid { grid-template-columns: 1fr; }
-    .lb-bars { grid-template-columns: 1fr 1fr; }
-    .lb-score { font-size: 28px; }
-    .col-headers, .person-row { grid-template-columns: 80px 1fr 1fr 1fr 1fr; }
-    .col-headers span, .person-row .pname { font-size: 9px; }
-  }
+:root{--red:#ED1C24;--rd:#c0151b;--bk:#000;--gl:#ccc;--gm:#999;--gd:#333;--gbg:#f5f5f5;--gb:#e0e0e0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:var(--gbg);color:var(--bk)}
+header{background:var(--bk);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:1000}
+.logo{display:flex;align-items:center;gap:12px}
+.lmark{width:32px;height:32px;background:var(--red);border-radius:2px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px}
+.ltxt{color:#fff;font-size:15px;font-weight:700}
+.lsub{color:var(--gm);font-size:13px;font-weight:400;margin-left:4px}
+.hbadge{background:var(--red);color:#fff;font-size:11px;padding:3px 10px;border-radius:2px;font-weight:700;letter-spacing:.05em}
+main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem}
+.hero{margin-bottom:1.5rem;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.hero h1{font-size:28px;font-weight:700;line-height:1.2}
+.hero h1 span{color:var(--red)}
+.hero p{color:var(--gd);font-size:14px;margin-top:6px}
+.next-box{background:#fff;border:1px solid var(--gb);padding:.75rem 1.25rem;min-width:220px}
+.next-box .nlbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gm);font-weight:700;margin-bottom:6px}
+.next-row{display:flex;align-items:center;gap:8px}
+.next-row input{flex:1;padding:6px 8px;border:1px solid var(--gb);font-size:14px;font-weight:700;font-family:Arial,sans-serif;color:var(--bk);min-width:0}
+.next-row input:focus{outline:2px solid var(--red)}
+.next-row button{background:var(--red);color:#fff;border:none;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:2rem}
+.stat{background:#fff;border:1px solid var(--gb);padding:1.25rem 1.5rem}
+.stat .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gm);font-weight:700;margin-bottom:6px}
+.stat .val{font-size:24px;font-weight:700;line-height:1}
+.stat .val.sm{font-size:16px;line-height:1.3}
+.stat .val.red{color:var(--red)}
+.stat .sub{font-size:12px;color:var(--gm);margin-top:4px}
+.tabs{display:flex;border-bottom:2px solid var(--gb);margin-bottom:1.5rem;flex-wrap:wrap}
+.tbtn{padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;background:none;border:none;color:var(--gm);text-transform:uppercase;letter-spacing:.03em;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tbtn:hover{color:var(--bk)}
+.tbtn.on{color:var(--red);border-bottom-color:var(--red)}
+.panel{display:none}.panel.on{display:block}
+.lb-list{display:flex;flex-direction:column;gap:12px}
+.lbc{background:#fff;border:1px solid var(--gb);padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1.25rem}
+.lbc.top{border-left:4px solid var(--red)}
+.lbrank{font-size:28px;font-weight:700;width:40px;text-align:center;flex-shrink:0}
+.lbi{flex:1}
+.lbname{font-size:18px;font-weight:700}
+.lbmeta{font-size:12px;color:var(--gm);margin-top:2px}
+.lbbars{margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+.bi .bl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--gm);font-weight:700;margin-bottom:3px;display:flex;justify-content:space-between}
+.bt{height:4px;background:var(--gl)}.bf{height:4px;background:var(--red)}
+.lbsb{text-align:right;flex-shrink:0}
+.lbsc{font-size:40px;font-weight:700;line-height:1}
+.lbsl{font-size:11px;color:var(--gm);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.vchip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:#f0f0f0;color:var(--gd);margin:2px;border:1px solid var(--gb)}
+.rsel{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.rbtn{padding:7px 16px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;background:#fff;border:1px solid var(--gb);color:var(--gd)}
+.rbtn.on{background:var(--red);color:#fff;border-color:var(--red)}
+.sw{background:#fff;border:1px solid var(--gb);overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--bk);color:#fff;padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+thead th:not(:first-child){text-align:center}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--gb);color:var(--bk)}
+tbody td:not(:first-child){text-align:center}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#fafafa}
+.nc{font-weight:700}
+.ap{display:inline-block;padding:3px 10px;font-weight:700;font-size:12px}
+.ah{background:#1a1a1a;color:#fff}.am{background:var(--gd);color:#fff}.al{background:var(--gl);color:var(--bk)}
+tfoot td{background:var(--gbg);font-weight:700;font-size:12px;padding:10px 14px;border-top:2px solid var(--bk)}
+tfoot td:not(:first-child){text-align:center;color:var(--red)}
+#map{height:400px;border:1px solid var(--gb);margin-bottom:1rem}
+.mleg{background:#fff;border:1px solid var(--gb);padding:1rem 1.5rem}
+.mleg h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--gm);font-weight:700;margin-bottom:10px}
+.legrow{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.legdot{width:12px;height:12px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:2px}
+.legname{font-size:13px;font-weight:700}
+.legaddr{font-size:11px;color:var(--gm)}
+.legscore{font-size:13px;font-weight:700;color:var(--red);margin-left:auto;white-space:nowrap}
+.fc{background:#fff;border:1px solid var(--gb);padding:1.5rem;margin-bottom:1rem}
+.fh{font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--gm);margin-bottom:1rem;border-bottom:1px solid var(--gb);padding-bottom:.5rem}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem}
+.fgrp{display:flex;flex-direction:column;gap:4px}
+.fgrp label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--gd)}
+.fgrp input{padding:8px 10px;border:1px solid var(--gb);font-size:13px;font-family:Arial,sans-serif;color:var(--bk);background:#fff}
+.fgrp input:focus{outline:2px solid var(--red)}
+.sbtn{background:var(--red);color:#fff;border:none;padding:11px 28px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;margin-top:1rem}
+.sbtn:hover{background:var(--rd)}
+.hint{font-size:11px;color:var(--gm);margin-top:8px;line-height:1.5}
+.name-entry{display:flex;gap:8px;align-items:center;margin-bottom:1rem;padding:1rem 1.25rem;background:#fff;border:1px solid var(--gb)}
+.name-entry input{flex:1;padding:9px 12px;border:1px solid var(--gb);font-size:14px;font-family:Arial,sans-serif;color:var(--bk)}
+.name-entry input:focus{outline:2px solid var(--red)}
+.name-entry button{background:var(--red);color:#fff;border:none;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.rpick{padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;border:1px solid var(--gb);color:var(--gd)}
+.rpick.on{background:var(--bk);color:#fff;border-color:var(--bk)}
+.vtag{display:inline-block;background:#1D9E75;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:2px;margin-left:6px}
+.vrow{display:grid;grid-template-columns:100px 1fr 1fr 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px}
+.vrow .pn{font-size:13px;font-weight:700}
+.vrow input{padding:7px 8px;border:1px solid var(--gb);font-size:14px;font-weight:700;text-align:center;font-family:Arial,sans-serif;width:100%;color:var(--bk)}
+.vrow input:focus{outline:2px solid var(--red)}
+.vch{display:grid;grid-template-columns:100px 1fr 1fr 1fr 1fr;gap:8px;margin-bottom:6px}
+.vch span{font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--gm);text-align:center}
+.vch span:first-child{text-align:left}
+footer{text-align:center;padding:2rem;font-size:11px;color:var(--gm);border-top:1px solid var(--gb);margin-top:2rem;background:#fff}
+footer strong{color:var(--red)}
+@media(max-width:620px){.fg{grid-template-columns:1fr}.lbbars{grid-template-columns:1fr 1fr}.lbsc{font-size:28px}.hero{flex-direction:column}.next-box{width:100%}}
 </style>
 </head>
 <body>
-
 <header>
   <div class="logo">
-    <div class="logo-mark">WF</div>
-    <span class="logo-text">Webfleet <span class="logo-sub">Lunch Club BCN</span></span>
+    <div class="lmark">WF</div>
+    <span class="ltxt">Webfleet<span class="lsub">Lunch Club BCN</span></span>
   </div>
-  <div class="header-badge">2025</div>
+  <div class="hbadge">2026</div>
 </header>
-
 <main>
   <div class="hero">
-    <h1>Ranking de <span>restaurantes</span></h1>
-    <p>Votaciones del equipo · Barcelona · 2025</p>
+    <div>
+      <h1>Ranking de <span>restaurantes</span></h1>
+      <p>Votaciones del equipo · Barcelona · 2026</p>
+    </div>
+    <div class="next-box">
+      <div class="nlbl">Próximo organizador</div>
+      <div class="next-row">
+        <input id="next-input" placeholder="Nombre..." />
+        <button onclick="saveNext()">Guardar</button>
+      </div>
+      <div id="next-saved" style="display:none;font-size:11px;color:#1D9E75;font-weight:700;margin-top:4px">Guardado!</div>
+    </div>
   </div>
-
   <div class="stat-grid" id="stats"></div>
-
   <div class="tabs">
-    <button class="tab-btn active" onclick="showTab('leaderboard', this)">Leaderboard</button>
-    <button class="tab-btn" onclick="showTab('scores', this)">Puntuaciones</button>
-    <button class="tab-btn" onclick="showTab('map', this)">Mapa</button>
-    <button class="tab-btn" onclick="showTab('add', this)">+ Añadir visita</button>
+    <button class="tbtn on" onclick="showTab('lb',this)">Leaderboard</button>
+    <button class="tbtn" onclick="showTab('scores',this)">Puntuaciones</button>
+    <button class="tbtn" onclick="showTab('vote',this)">Votar</button>
+    <button class="tbtn" onclick="showTab('map',this)">Mapa</button>
+    <button class="tbtn" onclick="showTab('add',this)">+ Nuevo restaurante</button>
   </div>
-
-  <div id="panel-leaderboard" class="panel active"></div>
+  <div id="panel-lb" class="panel on"></div>
   <div id="panel-scores" class="panel"></div>
+  <div id="panel-vote" class="panel"></div>
   <div id="panel-map" class="panel">
     <div id="map"></div>
-    <div class="map-legend"><h3>Restaurantes visitados</h3><div id="legend-rows"></div></div>
+    <div class="mleg"><h3>Restaurantes visitados</h3><div id="legrows"></div></div>
   </div>
   <div id="panel-add" class="panel"></div>
 </main>
-
 <footer><strong>Webfleet</strong> Lunch Club BCN · A Bridgestone Company</footer>
 
 <script>
-const DEFAULT_DATA = [
-  {
-    id:'sopa', name:'Sopa Boronat', date:'Junio 2025', org:'Aru', next:'—',
-    address:'Carrer de Boronat, 1, 08018 Barcelona', lat:41.4033, lng:2.1932,
-    scores:[
-      {name:'Aru',p:8.5,c:8.5,v:9.0,s:8.0},{name:'Bernat',p:9.0,c:9.0,v:9.0,s:8.5},
-      {name:'Marc',p:9.0,c:7.5,v:8.0,s:7.0},{name:'Laia',p:8.5,c:8.0,v:8.0,s:8.0},
-      {name:'Bella',p:8.5,c:7.5,v:8.5,s:7.0},{name:'Clara',p:9.0,c:9.0,v:9.0,s:8.0},
-      {name:'Agus',p:8.5,c:8.0,v:7.5,s:6.0}
-    ]
-  },
-  {
-    id:'26kg', name:'26KG', date:'Mayo 2025', org:'Marc', next:'Aru',
-    address:'Carrer del Consell de Cent, 26, 08015 Barcelona', lat:41.3851, lng:2.1534,
-    scores:[
-      {name:'Marc',p:7.5,c:5.5,v:7.0,s:8.5},{name:'Bernat',p:7.0,c:6.0,v:6.0,s:8.0},
-      {name:'Aru',p:7.0,c:6.0,v:7.0,s:8.0},{name:'Agus',p:7.0,c:5.0,v:6.0,s:8.0},
-      {name:'Daniel',p:7.0,c:5.0,v:7.0,s:8.5},{name:'Kata',p:7.0,c:8.0,v:7.0,s:8.0},
-      {name:'Clara',p:7.0,c:8.0,v:9.0,s:9.0},{name:'Laia',p:7.0,c:5.0,v:7.0,s:8.0},
-      {name:'Bella',p:7.5,c:5.0,v:7.0,s:8.0}
-    ]
-  }
+const SEED=[
+  {id:'sopa',name:'Sopa',date:'Junio 2026',org:'Aru',
+   address:'Carrer de Boronat, 1, 08018 Barcelona',lat:41.4033,lng:2.1932,
+   scores:[
+    {name:'Aru',p:8.5,c:8.5,v:9.0,s:8.0},{name:'Bernat',p:9.0,c:9.0,v:9.0,s:8.5},
+    {name:'Marc',p:9.0,c:7.5,v:8.0,s:7.0},{name:'Laia',p:8.5,c:8.0,v:8.0,s:8.0},
+    {name:'Bella',p:8.5,c:7.5,v:8.5,s:7.0},{name:'Clara',p:9.0,c:9.0,v:9.0,s:8.0},
+    {name:'Agus',p:8.5,c:8.0,v:7.5,s:6.0},{name:'Kata',p:8.0,c:8.0,v:9.0,s:8.0},
+    {name:'Pedro',p:8.0,c:8.0,v:7.5,s:8.0},{name:'Joan',p:9.0,c:8.0,v:8.0,s:8.0}]},
+  {id:'26kg',name:'26KG',date:'Mayo 2026',org:'Marc',
+   address:'Calle de Sancho de Ávila, 175, 08018 Barcelona',lat:41.4011,lng:2.1935,
+   scores:[
+    {name:'Marc',p:7.5,c:5.5,v:7.0,s:8.5},{name:'Bernat',p:7.0,c:6.0,v:6.0,s:8.0},
+    {name:'Aru',p:7.0,c:6.0,v:7.0,s:8.0},{name:'Agus',p:7.0,c:5.0,v:6.0,s:8.0},
+    {name:'Daniel',p:7.0,c:5.0,v:7.0,s:8.5},{name:'Kata',p:7.0,c:8.0,v:7.0,s:8.0},
+    {name:'Clara',p:7.0,c:8.0,v:9.0,s:9.0},{name:'Laia',p:7.0,c:5.0,v:7.0,s:8.0},
+    {name:'Bella',p:7.5,c:5.0,v:7.0,s:8.0}]}
 ];
 
-function loadData(){ try{ const s=localStorage.getItem('lc_data'); return s?JSON.parse(s):DEFAULT_DATA; }catch(e){return DEFAULT_DATA;} }
-function saveData(d){ try{localStorage.setItem('lc_data',JSON.stringify(d));}catch(e){} }
+function load(){try{const s=localStorage.getItem('lc3');return s?JSON.parse(s):{restaurants:JSON.parse(JSON.stringify(SEED)),next:''}}catch(e){return{restaurants:JSON.parse(JSON.stringify(SEED)),next:''}}}
+function save(){try{localStorage.setItem('lc3',JSON.stringify(state));}catch(e){}}
 
-const avg = s => (s.p+s.c+s.v+s.s)/4;
-const restAvg = r => r.scores.reduce((a,s)=>a+avg(s),0)/r.scores.length;
-const catAvg = (r,k) => r.scores.reduce((a,s)=>a+s[k],0)/r.scores.length;
-const fmt = n => parseFloat(n.toFixed(1));
+const avg=s=>(s.p+s.c+s.v+s.s)/4;
+const ravg=r=>r.scores.length?r.scores.reduce((a,s)=>a+avg(s),0)/r.scores.length:0;
+const cavg=(r,k)=>r.scores.length?r.scores.reduce((a,s)=>a+s[k],0)/r.scores.length:0;
+const fmt=n=>parseFloat(n.toFixed(1));
+const CATS=[{k:'p',l:'Precio'},{k:'c',l:'Comida'},{k:'v',l:'Vibes'},{k:'s',l:'Servicio'}];
 
-let data = loadData();
-let mapInst = null;
-let curRest = 0;
-const MEMBERS = ['Aru','Bernat','Marc','Laia','Bella','Clara','Agus','Kata','Daniel'];
-const CATS = [{k:'p',l:'Precio'},{k:'c',l:'Comida'},{k:'v',l:'Vibes'},{k:'s',l:'Servicio'}];
+let state=load(), mapInst=null, curRest=0, curVoteRest=0;
 
-function renderStats(){
-  const sorted = [...data].sort((a,b)=>restAvg(b)-restAvg(a));
-  const best = sorted[0];
-  const people = [...new Set(data.flatMap(r=>r.scores.map(s=>s.name)))];
-  document.getElementById('stats').innerHTML = `
-    <div class="stat-card"><div class="label">Mejor restaurante</div><div class="value red" style="font-size:17px;line-height:1.3">${best.name}</div><div class="sub">${fmt(restAvg(best))} / 10</div></div>
-    <div class="stat-card"><div class="label">Visitas 2025</div><div class="value">${data.length}</div><div class="sub">restaurantes probados</div></div>
-    <div class="stat-card"><div class="label">Participantes</div><div class="value">${people.length}</div><div class="sub">personas del equipo</div></div>
-    <div class="stat-card"><div class="label">Próximo organizador</div><div class="value" style="font-size:17px;line-height:1.3">${data[data.length-1].next||'—'}</div><div class="sub">a definir</div></div>
-  `;
+function initNext(){
+  document.getElementById('next-input').value=state.next||'';
+}
+function saveNext(){
+  state.next=document.getElementById('next-input').value.trim();
+  save();renderStats();
+  const el=document.getElementById('next-saved');
+  el.style.display='block';setTimeout(()=>el.style.display='none',2000);
 }
 
-function renderLeaderboard(){
-  const sorted = [...data].map(r=>({...r,avg:restAvg(r)})).sort((a,b)=>b.avg-a.avg);
+function renderStats(){
+  const data=state.restaurants;
+  const sorted=[...data].sort((a,b)=>ravg(b)-ravg(a));
+  const best=sorted[0];
+  const people=[...new Set(data.flatMap(r=>r.scores.map(s=>s.name)))];
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="lbl">Mejor restaurante</div><div class="val red sm">${best.name}</div><div class="sub">${fmt(ravg(best))} / 10</div></div>
+    <div class="stat"><div class="lbl">Visitas 2026</div><div class="val">${data.length}</div><div class="sub">restaurantes</div></div>
+    <div class="stat"><div class="lbl">Participantes totales</div><div class="val">${people.length}</div><div class="sub">personas del equipo</div></div>
+    <div class="stat"><div class="lbl">Próximo organizador</div><div class="val red sm">${state.next||'—'}</div><div class="sub">editar arriba</div></div>`;
+}
+
+function renderLB(){
+  const data=state.restaurants;
+  const sorted=[...data].map(r=>({...r,avg:ravg(r)})).sort((a,b)=>b.avg-a.avg);
   const medals=['🥇','🥈','🥉'];
-  document.getElementById('panel-leaderboard').innerHTML = `<div class="lb-list">${
-    sorted.map((r,i)=>`
-      <div class="lb-card ${i===0?'first':''}">
-        <div class="lb-rank">${medals[i]||i+1}</div>
-        <div class="lb-info">
-          <div class="lb-name">${r.name}</div>
-          <div class="lb-meta">${r.date} · Org: ${r.org} · ${r.scores.length} votos</div>
-          <div class="lb-bars">${CATS.map(c=>{const v=catAvg(r,c.k);return`<div class="bar-item"><div class="bar-label"><span>${c.l}</span><span>${fmt(v)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${v/10*100}%"></div></div></div>`;}).join('')}</div>
-        </div>
-        <div class="lb-score-box"><div class="lb-score">${fmt(r.avg)}</div><div class="lb-score-label">/ 10</div></div>
-      </div>`).join('')
-  }</div>`;
+  document.getElementById('panel-lb').innerHTML=`<div class="lb-list">${sorted.map((r,i)=>`
+    <div class="lbc ${i===0?'top':''}">
+      <div class="lbrank">${medals[i]||i+1}</div>
+      <div class="lbi">
+        <div class="lbname">${r.name}</div>
+        <div class="lbmeta">${r.date} · Org: ${r.org} · ${r.scores.length} votos</div>
+        <div style="margin-top:5px">${r.scores.map(s=>`<span class="vchip">${s.name}</span>`).join('')}</div>
+        <div class="lbbars">${CATS.map(c=>{const v=cavg(r,c.k);return`<div class="bi"><div class="bl"><span>${c.l}</span><span>${fmt(v)}</span></div><div class="bt"><div class="bf" style="width:${v/10*100}%"></div></div></div>`;}).join('')}</div>
+      </div>
+      <div class="lbsb"><div class="lbsc">${fmt(r.avg)}</div><div class="lbsl">/ 10</div></div>
+    </div>`).join('')}</div>`;
 }
 
 function renderScores(){
-  const r = data[curRest];
-  const rows = [...r.scores].map(s=>({...s,avg:avg(s)})).sort((a,b)=>b.avg-a.avg);
-  const pillC = v => v>=8.5?'avg-hi':v>=7?'avg-mid':'avg-lo';
-  document.getElementById('panel-scores').innerHTML = `
-    <div class="rest-selector">${data.map((d,i)=>`<button class="rest-btn ${i===curRest?'active':''}" onclick="switchRest(${i})">${d.name}</button>`).join('')}</div>
-    <div class="scores-wrap"><table>
+  const data=state.restaurants;
+  const r=data[curRest];
+  const rows=[...r.scores].map(s=>({...s,avg:avg(s)})).sort((a,b)=>b.avg-a.avg);
+  const pc=v=>v>=8.5?'ah':v>=7?'am':'al';
+  document.getElementById('panel-scores').innerHTML=`
+    <div class="rsel">${data.map((d,i)=>`<button class="rbtn ${i===curRest?'on':''}" onclick="switchRest(${i})">${d.name}</button>`).join('')}</div>
+    <div class="sw"><table>
       <thead><tr><th>Persona</th>${CATS.map(c=>`<th>${c.l}</th>`).join('')}<th>Media</th></tr></thead>
-      <tbody>${rows.map(s=>`<tr><td class="name-cell">${s.name}</td>${CATS.map(c=>`<td>${fmt(s[c.k])}</td>`).join('')}<td><span class="avg-pill ${pillC(s.avg)}">${fmt(s.avg)}</span></td></tr>`).join('')}</tbody>
-      <tfoot><tr><td>Media grupo</td>${CATS.map(c=>`<td>${fmt(catAvg(r,c.k))}</td>`).join('')}<td>${fmt(restAvg(r))}</td></tr></tfoot>
+      <tbody>${rows.map(s=>`<tr><td class="nc">${s.name}</td>${CATS.map(c=>`<td>${fmt(s[c.k])}</td>`).join('')}<td><span class="ap ${pc(s.avg)}">${fmt(s.avg)}</span></td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>Media grupo</td>${CATS.map(c=>`<td>${fmt(cavg(r,c.k))}</td>`).join('')}<td>${fmt(ravg(r))}</td></tr></tfoot>
     </table></div>`;
 }
 
-function switchRest(i){ curRest=i; renderScores(); }
+function switchRest(i){curRest=i;renderScores();}
+
+function renderVote(){
+  const data=state.restaurants;
+  document.getElementById('panel-vote').innerHTML=`
+    <p style="font-size:13px;color:var(--gm);margin-bottom:.75rem">Elige el restaurante y escribe tu nombre para votar. Puedes actualizar tu voto en cualquier momento.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">${data.map((d,i)=>`<button class="rpick ${i===curVoteRest?'on':''}" onclick="pickVR(${i})">${d.name} <span style="font-weight:400;font-size:11px;opacity:.8">${d.date}</span></button>`).join('')}</div>
+    <div class="name-entry">
+      <input id="vname" placeholder="Tu nombre (ej. Kata, Bernat...)" />
+      <button onclick="startVote()">Continuar</button>
+    </div>
+    <div id="vform" style="display:none">
+      <div class="fc">
+        <div class="fh" id="vftitle"></div>
+        <div class="vch"><span></span><span>Precio</span><span>Comida</span><span>Vibes</span><span>Servicio</span></div>
+        <div class="vrow">
+          <div class="pn" id="vfname"></div>
+          <input type="number" id="vp" min="0" max="10" step="0.5" placeholder="—">
+          <input type="number" id="vc" min="0" max="10" step="0.5" placeholder="—">
+          <input type="number" id="vv" min="0" max="10" step="0.5" placeholder="—">
+          <input type="number" id="vs" min="0" max="10" step="0.5" placeholder="—">
+        </div>
+        <button class="sbtn" onclick="submitVote()">Guardar voto</button>
+        <p class="hint">Escribe entre 0 y 10, puedes usar decimales (ej. 7.5). Si votas de nuevo con el mismo nombre, actualiza tu voto anterior.</p>
+      </div>
+    </div>
+    <div id="vthanks" style="display:none;padding:1rem 1.25rem;background:#fff;border:1px solid var(--gb);font-size:14px;margin-bottom:1rem">
+      <span style="color:#1D9E75;font-weight:700;font-size:16px">Voto guardado!</span><br>
+      <span style="color:var(--gm);font-size:13px">El leaderboard se ha actualizado. Puedes ver los resultados en la pestaña Leaderboard.</span>
+    </div>
+    <div style="padding:1rem 1.25rem;background:#fff;border:1px solid var(--gb)">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gm);margin-bottom:.5rem">Han votado para <span id="vrest-name"></span></div>
+      <div id="voted-list"></div>
+    </div>`;
+  refreshVotedList();
+}
+
+function refreshVotedList(){
+  const r=state.restaurants[curVoteRest];
+  document.getElementById('vrest-name').textContent=r.name;
+  document.getElementById('voted-list').innerHTML=r.scores.length
+    ?r.scores.map(s=>`<span class="vchip">${s.name}</span>`).join('')
+    :`<span style="font-size:13px;color:var(--gm)">Nadie ha votado aún — sé el primero!</span>`;
+}
+
+function pickVR(i){curVoteRest=i;renderVote();}
+
+function startVote(){
+  const n=document.getElementById('vname').value.trim();
+  if(!n){document.getElementById('vname').focus();return;}
+  const r=state.restaurants[curVoteRest];
+  const ex=r.scores.find(s=>s.name.toLowerCase()===n.toLowerCase());
+  document.getElementById('vftitle').innerHTML=`Votando: <strong>${r.name}</strong> · ${r.date}${ex?'<span class="vtag">actualizando voto</span>':''}`;
+  document.getElementById('vfname').textContent=n;
+  if(ex){document.getElementById('vp').value=ex.p;document.getElementById('vc').value=ex.c;document.getElementById('vv').value=ex.v;document.getElementById('vs').value=ex.s;}
+  else{['vp','vc','vv','vs'].forEach(id=>document.getElementById(id).value='');}
+  document.getElementById('vform').style.display='block';
+  document.getElementById('vthanks').style.display='none';
+}
+
+function submitVote(){
+  const n=document.getElementById('vname').value.trim();
+  if(!n)return;
+  const vals=['vp','vc','vv','vs'].map(id=>parseFloat(document.getElementById(id).value));
+  if(vals.some(x=>isNaN(x))){alert('Por favor rellena las 4 puntuaciones');return;}
+  const r=state.restaurants[curVoteRest];
+  r.scores=r.scores.filter(x=>x.name.toLowerCase()!==n.toLowerCase());
+  r.scores.push({name:n,p:vals[0],c:vals[1],v:vals[2],s:vals[3]});
+  save();renderStats();renderLB();
+  document.getElementById('vform').style.display='none';
+  document.getElementById('vthanks').style.display='block';
+  refreshVotedList();
+}
 
 function renderMap(){
+  const data=state.restaurants;
   if(!mapInst){
-    mapInst = L.map('map').setView([41.394,2.172],13);
+    mapInst=L.map('map').setView([41.394,2.172],13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(mapInst);
-  } else {
-    mapInst.eachLayer(l=>{ if(l instanceof L.Marker) mapInst.removeLayer(l); });
-  }
+  } else {mapInst.eachLayer(l=>{if(l instanceof L.Marker)mapInst.removeLayer(l);});}
   data.forEach(r=>{
-    const a = fmt(restAvg(r));
-    const icon = L.divIcon({
-      className:'',
-      html:`<div style="background:#ED1C24;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Arial;font-weight:700;font-size:13px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)">${a}</div>`,
-      iconSize:[40,40],iconAnchor:[20,20]
-    });
-    L.marker([r.lat,r.lng],{icon}).addTo(mapInst)
-      .bindPopup(`<b style="font-family:Arial;font-size:14px">${r.name}</b><br><span style="font-family:Arial;font-size:12px;color:#666">${r.address}</span><br><span style="font-family:Arial;font-size:13px;color:#ED1C24;font-weight:700">Media: ${a} / 10</span>`);
+    const a=fmt(ravg(r));
+    const icon=L.divIcon({className:'',html:`<div style="background:#ED1C24;color:#fff;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Arial;font-weight:700;font-size:13px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">${a}</div>`,iconSize:[40,40],iconAnchor:[20,20]});
+    L.marker([r.lat,r.lng],{icon}).addTo(mapInst).bindPopup(`<b style="font-family:Arial">${r.name}</b><br><span style="font-family:Arial;font-size:12px;color:#666">${r.address}</span><br><span style="font-family:Arial;font-size:13px;color:#ED1C24;font-weight:700">Media: ${a}/10</span>`);
   });
-  document.getElementById('legend-rows').innerHTML = data.map(r=>`
-    <div class="legend-row">
-      <div class="legend-dot"></div>
-      <div><div class="legend-name">${r.name}</div><div class="legend-addr">${r.address}</div></div>
-      <div class="legend-score">${fmt(restAvg(r))} / 10</div>
-    </div>`).join('');
+  document.getElementById('legrows').innerHTML=data.map(r=>`<div class="legrow"><div class="legdot"></div><div><div class="legname">${r.name}</div><div class="legaddr">${r.address}</div></div><div class="legscore">${fmt(ravg(r))} / 10</div></div>`).join('');
   setTimeout(()=>mapInst.invalidateSize(),200);
 }
 
 function renderAdd(){
-  document.getElementById('panel-add').innerHTML = `
-    <div class="form-card">
-      <h3>Datos del restaurante</h3>
-      <div class="form-grid">
-        <div class="form-group"><label>Restaurante *</label><input id="f-name" placeholder="Nombre del restaurante"></div>
-        <div class="form-group"><label>Fecha *</label><input id="f-date" placeholder="Julio 2025"></div>
-        <div class="form-group"><label>Dirección</label><input id="f-addr" placeholder="Calle, número, Barcelona"></div>
-        <div class="form-group"><label>Organizador</label><input id="f-org" placeholder="Quién lo organizó"></div>
-        <div class="form-group"><label>Próximo organizador</label><input id="f-next" placeholder="Quién organiza el próximo"></div>
-        <div class="form-group"><label>Latitud (para el mapa)</label><input id="f-lat" placeholder="41.3851" type="number" step="any"></div>
-        <div class="form-group"><label>Longitud (para el mapa)</label><input id="f-lng" placeholder="2.1734" type="number" step="any"></div>
+  document.getElementById('panel-add').innerHTML=`
+    <div class="fc">
+      <div class="fh">Detalles del nuevo restaurante</div>
+      <div class="fg">
+        <div class="fgrp"><label>Nombre *</label><input id="fn" placeholder="ej. Bar Cañete"></div>
+        <div class="fgrp"><label>Fecha *</label><input id="fd" placeholder="Julio 2026"></div>
+        <div class="fgrp"><label>Dirección</label><input id="fa" placeholder="Calle, número, Barcelona"></div>
+        <div class="fgrp"><label>Organizador</label><input id="fo" placeholder="Quién lo organizó"></div>
+        <div class="fgrp"><label>Latitud (para el mapa)</label><input id="flat" placeholder="41.3851" type="number" step="any"></div>
+        <div class="fgrp"><label>Longitud (para el mapa)</label><input id="flng" placeholder="2.1734" type="number" step="any"></div>
       </div>
-      <h3>Puntuaciones del equipo (0–10)</h3>
-      <div class="col-headers"><span>Persona</span><span>Precio</span><span>Comida</span><span>Vibes</span><span>Servicio</span></div>
-      <div class="person-rows">${MEMBERS.map(m=>`
-        <div class="person-row">
-          <div class="pname">${m}</div>
-          <input class="sc" data-name="${m}" data-cat="p" placeholder="—" type="number" min="0" max="10" step="0.5">
-          <input class="sc" data-name="${m}" data-cat="c" placeholder="—" type="number" min="0" max="10" step="0.5">
-          <input class="sc" data-name="${m}" data-cat="v" placeholder="—" type="number" min="0" max="10" step="0.5">
-          <input class="sc" data-name="${m}" data-cat="s" placeholder="—" type="number" min="0" max="10" step="0.5">
-        </div>`).join('')}
-      </div>
-      <p class="hint">Deja en blanco a quien no fue. Para el mapa: busca el restaurante en Google Maps, haz clic derecho y copia las coordenadas.</p>
-      <button class="submit-btn" onclick="submitVisit()">Guardar visita</button>
-      <span id="save-ok" style="display:none;margin-left:12px;font-size:13px;color:#27500A;font-weight:700">¡Guardado correctamente!</span>
+      <p class="hint">Una vez creado, el equipo puede votar desde la pestaña <strong>Votar</strong>.<br>Para el mapa: busca el restaurante en Google Maps → clic derecho → copia las coordenadas (ej. 41.3892, 2.1687).</p>
+      <button class="sbtn" onclick="submitAdd()">Crear restaurante</button>
+      <span id="add-ok" style="display:none;margin-left:12px;font-size:13px;color:#1D9E75;font-weight:700">Creado! Ve a la pestaña Votar para añadir puntuaciones.</span>
     </div>`;
 }
 
-function submitVisit(){
-  const name = document.getElementById('f-name').value.trim();
-  if(!name){ alert('Escribe el nombre del restaurante'); return; }
-  const scores=[];
-  MEMBERS.forEach(m=>{
-    const ins=[...document.querySelectorAll(`.sc[data-name="${m}"]`)];
-    const vals=ins.map(i=>parseFloat(i.value));
-    if(vals.some(v=>!isNaN(v))){
-      scores.push({name:m,p:isNaN(vals[0])?0:vals[0],c:isNaN(vals[1])?0:vals[1],v:isNaN(vals[2])?0:vals[2],s:isNaN(vals[3])?0:vals[3]});
-    }
+function submitAdd(){
+  const name=document.getElementById('fn').value.trim();
+  if(!name){alert('Escribe el nombre del restaurante');return;}
+  state.restaurants.push({
+    id:name.toLowerCase().replace(/\s+/g,'-'),name,
+    date:document.getElementById('fd').value||'2026',
+    org:document.getElementById('fo').value,
+    address:document.getElementById('fa').value||'Barcelona',
+    lat:parseFloat(document.getElementById('flat').value)||41.385,
+    lng:parseFloat(document.getElementById('flng').value)||2.173,
+    scores:[]
   });
-  if(!scores.length){ alert('Añade al menos una puntuación'); return; }
-  const lat=parseFloat(document.getElementById('f-lat').value)||41.385;
-  const lng=parseFloat(document.getElementById('f-lng').value)||2.173;
-  data.push({
-    id:name.toLowerCase().replace(/\s+/g,'-'), name,
-    date:document.getElementById('f-date').value||'2025',
-    org:document.getElementById('f-org').value,
-    next:document.getElementById('f-next').value,
-    address:document.getElementById('f-addr').value||'Barcelona',
-    lat,lng,scores
-  });
-  saveData(data);
-  renderStats(); renderLeaderboard();
+  save();renderStats();renderLB();
   if(mapInst){mapInst.remove();mapInst=null;}
-  document.getElementById('save-ok').style.display='inline';
-  setTimeout(()=>document.getElementById('save-ok').style.display='none',3000);
+  document.getElementById('add-ok').style.display='inline';
+  setTimeout(()=>document.getElementById('add-ok').style.display='none',4000);
+  document.getElementById('fn').value='';document.getElementById('fd').value='';
+  document.getElementById('fa').value='';document.getElementById('fo').value='';
 }
 
-function showTab(t, btn){
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('panel-'+t).classList.add('active');
-  btn.classList.add('active');
-  if(t==='scores') renderScores();
-  if(t==='map') renderMap();
-  if(t==='add') renderAdd();
+function showTab(t,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('panel-'+t).classList.add('on');
+  btn.classList.add('on');
+  if(t==='scores')renderScores();
+  if(t==='map')renderMap();
+  if(t==='add')renderAdd();
+  if(t==='vote')renderVote();
 }
 
-renderStats();
-renderLeaderboard();
+initNext();renderStats();renderLB();
 </script>
 </body>
 </html>
