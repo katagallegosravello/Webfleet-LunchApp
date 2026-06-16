@@ -175,8 +175,9 @@ const SEED=[
     {name:'Bella',p:7.5,c:5.0,v:7.0,s:8.0}]}
 ];
 
-function load(){try{const s=localStorage.getItem('lc3');return s?JSON.parse(s):{restaurants:JSON.parse(JSON.stringify(SEED)),next:''}}catch(e){return{restaurants:JSON.parse(JSON.stringify(SEED)),next:''}}}
-function save(){try{localStorage.setItem('lc3',JSON.stringify(state));}catch(e){}}
+const BIN_ID='6a316529f5f4af5e29fbc64d';
+const API_KEY='$2a$10$bqCIdDP5zjVo5We5SbIaje8IUE72zp.TDQ89of9sMUlUQ9zelctr2';
+const BIN_URL='https://api.jsonbin.io/v3/b/'+BIN_ID;
 
 const avg=s=>(s.p+s.c+s.v+s.s)/4;
 const ravg=r=>r.scores.length?r.scores.reduce((a,s)=>a+avg(s),0)/r.scores.length:0;
@@ -184,14 +185,27 @@ const cavg=(r,k)=>r.scores.length?r.scores.reduce((a,s)=>a+s[k],0)/r.scores.leng
 const fmt=n=>parseFloat(n.toFixed(1));
 const CATS=[{k:'p',l:'Precio'},{k:'c',l:'Comida'},{k:'v',l:'Vibes'},{k:'s',l:'Servicio'}];
 
-let state=load(), mapInst=null, curRest=0, curVoteRest=0;
+let state={restaurants:JSON.parse(JSON.stringify(SEED)),next:''};
+let mapInst=null,curRest=0,curVoteRest=0;
 
-function initNext(){
-  document.getElementById('next-input').value=state.next||'';
+async function loadFromBin(){
+  try{
+    const r=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':API_KEY,'X-Bin-Meta':'false'}});
+    const data=await r.json();
+    if(data&&data.restaurants) state=data;
+  }catch(e){console.log('Using seed data',e);}
+  initNext();renderStats();renderLB();setTimeout(renderMap,200);
 }
-function saveNext(){
+
+async function saveToBin(){
+  await fetch(BIN_URL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},body:JSON.stringify(state)});
+}
+
+function initNext(){document.getElementById('next-input').value=state.next||'';}
+
+async function saveNext(){
   state.next=document.getElementById('next-input').value.trim();
-  save();renderStats();
+  await saveToBin();renderStats();
   const el=document.getElementById('next-saved');
   el.style.display='block';setTimeout(()=>el.style.display='none',2000);
 }
@@ -201,28 +215,28 @@ function renderStats(){
   const sorted=[...data].sort((a,b)=>ravg(b)-ravg(a));
   const best=sorted[0];
   const people=[...new Set(data.flatMap(r=>r.scores.map(s=>s.name)))];
-  document.getElementById('stats').innerHTML=`
-    <div class="stat"><div class="lbl">Mejor restaurante</div><div class="val red sm">${best.name}</div><div class="sub">${fmt(ravg(best))} / 10</div></div>
-    <div class="stat"><div class="lbl">Visitas 2026</div><div class="val">${data.length}</div><div class="sub">restaurantes</div></div>
-    <div class="stat"><div class="lbl">Participantes totales</div><div class="val">${people.length}</div><div class="sub">personas del equipo</div></div>
-    <div class="stat"><div class="lbl">Próximo organizador</div><div class="val red sm">${state.next||'—'}</div><div class="sub">editar arriba</div></div>`;
+  document.getElementById('stats').innerHTML=
+    '<div class="stat"><div class="lbl">Mejor restaurante</div><div class="val red sm">'+best.name+'</div><div class="sub">'+fmt(ravg(best))+' / 10</div></div>'+
+    '<div class="stat"><div class="lbl">Visitas 2026</div><div class="val">'+data.length+'</div><div class="sub">restaurantes</div></div>'+
+    '<div class="stat"><div class="lbl">Participantes totales</div><div class="val">'+people.length+'</div><div class="sub">personas del equipo</div></div>'+
+    '<div class="stat"><div class="lbl">Próximo organizador</div><div class="val red sm">'+(state.next||'—')+'</div><div class="sub">editar arriba</div></div>';
 }
 
 function renderLB(){
   const data=state.restaurants;
   const sorted=[...data].map(r=>({...r,avg:ravg(r)})).sort((a,b)=>b.avg-a.avg);
   const medals=['🥇','🥈','🥉'];
-  document.getElementById('lb-content').innerHTML=`<div class="lb-list">${sorted.map((r,i)=>`
-    <div class="lbc ${i===0?'top':''}">
-      <div class="lbrank">${medals[i]||i+1}</div>
-      <div class="lbi">
-        <div class="lbname">${r.name}</div>
-        <div class="lbmeta">${r.date} · Org: ${r.org} · ${r.scores.length} votos</div>
-        <div style="margin-top:5px">${r.scores.map(s=>`<span class="vchip">${s.name}</span>`).join('')}</div>
-        <div class="lbbars">${CATS.map(c=>{const v=cavg(r,c.k);return`<div class="bi"><div class="bl"><span>${c.l}</span><span>${fmt(v)}</span></div><div class="bt"><div class="bf" style="width:${v/10*100}%"></div></div></div>`;}).join('')}</div>
-      </div>
-      <div class="lbsb"><div class="lbsc">${fmt(r.avg)}</div><div class="lbsl">/ 10</div></div>
-    </div>`).join('')}</div>`;
+  document.getElementById('lb-content').innerHTML='<div class="lb-list">'+sorted.map((r,i)=>
+    '<div class="lbc '+(i===0?'top':'')+'">'+
+    '<div class="lbrank">'+(medals[i]||i+1)+'</div>'+
+    '<div class="lbi">'+
+    '<div class="lbname">'+r.name+'</div>'+
+    '<div class="lbmeta">'+r.date+' · Org: '+r.org+' · '+r.scores.length+' votos</div>'+
+    '<div style="margin-top:5px">'+r.scores.map(s=>'<span class="vchip">'+s.name+'</span>').join('')+'</div>'+
+    '<div class="lbbars">'+CATS.map(c=>{const v=cavg(r,c.k);return'<div class="bi"><div class="bl"><span>'+c.l+'</span><span>'+fmt(v)+'</span></div><div class="bt"><div class="bf" style="width:'+(v/10*100)+'%"></div></div></div>';}).join('')+'</div>'+
+    '</div>'+
+    '<div class="lbsb"><div class="lbsc">'+fmt(r.avg)+'</div><div class="lbsl">/ 10</div></div>'+
+    '</div>').join('')+'</div>';
 }
 
 function renderScores(){
@@ -230,49 +244,40 @@ function renderScores(){
   const r=data[curRest];
   const rows=[...r.scores].map(s=>({...s,avg:avg(s)})).sort((a,b)=>b.avg-a.avg);
   const pc=v=>v>=8.5?'ah':v>=7?'am':'al';
-  document.getElementById('panel-scores').innerHTML=`
-    <div class="rsel">${data.map((d,i)=>`<button class="rbtn ${i===curRest?'on':''}" onclick="switchRest(${i})">${d.name}</button>`).join('')}</div>
-    <div class="sw"><table>
-      <thead><tr><th>Persona</th>${CATS.map(c=>`<th>${c.l}</th>`).join('')}<th>Media</th></tr></thead>
-      <tbody>${rows.map(s=>`<tr><td class="nc">${s.name}</td>${CATS.map(c=>`<td>${fmt(s[c.k])}</td>`).join('')}<td><span class="ap ${pc(s.avg)}">${fmt(s.avg)}</span></td></tr>`).join('')}</tbody>
-      <tfoot><tr><td>Media grupo</td>${CATS.map(c=>`<td>${fmt(cavg(r,c.k))}</td>`).join('')}<td>${fmt(ravg(r))}</td></tr></tfoot>
-    </table></div>`;
+  document.getElementById('panel-scores').innerHTML=
+    '<div class="rsel">'+data.map((d,i)=>'<button class="rbtn '+(i===curRest?'on':'')+'" onclick="switchRest('+i+')">'+d.name+'</button>').join('')+'</div>'+
+    '<div class="sw"><table>'+
+    '<thead><tr><th>Persona</th>'+CATS.map(c=>'<th>'+c.l+'</th>').join('')+'<th>Media</th></tr></thead>'+
+    '<tbody>'+rows.map(s=>'<tr><td class="nc">'+s.name+'</td>'+CATS.map(c=>'<td>'+fmt(s[c.k])+'</td>').join('')+'<td><span class="ap '+pc(s.avg)+'">'+fmt(s.avg)+'</span></td></tr>').join('')+'</tbody>'+
+    '<tfoot><tr><td>Media grupo</td>'+CATS.map(c=>'<td>'+fmt(cavg(r,c.k))+'</td>').join('')+'<td>'+fmt(ravg(r))+'</td></tr></tfoot>'+
+    '</table></div>';
 }
 
 function switchRest(i){curRest=i;renderScores();}
 
 function renderVote(){
   const data=state.restaurants;
-  document.getElementById('panel-vote').innerHTML=`
-    <p style="font-size:13px;color:var(--gm);margin-bottom:.75rem">Elige el restaurante y escribe tu nombre para votar. Puedes actualizar tu voto en cualquier momento.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">${data.map((d,i)=>`<button class="rpick ${i===curVoteRest?'on':''}" onclick="pickVR(${i})">${d.name} <span style="font-weight:400;font-size:11px;opacity:.8">${d.date}</span></button>`).join('')}</div>
-    <div class="name-entry">
-      <input id="vname" placeholder="Tu nombre (ej. Kata, Bernat...)" />
-      <button onclick="startVote()">Continuar</button>
-    </div>
-    <div id="vform" style="display:none">
-      <div class="fc">
-        <div class="fh" id="vftitle"></div>
-        <div class="vch"><span></span><span>Precio</span><span>Comida</span><span>Vibes</span><span>Servicio</span></div>
-        <div class="vrow">
-          <div class="pn" id="vfname"></div>
-          <input type="number" id="vp" min="0" max="10" step="0.5" placeholder="—">
-          <input type="number" id="vc" min="0" max="10" step="0.5" placeholder="—">
-          <input type="number" id="vv" min="0" max="10" step="0.5" placeholder="—">
-          <input type="number" id="vs" min="0" max="10" step="0.5" placeholder="—">
-        </div>
-        <button class="sbtn" onclick="submitVote()">Guardar voto</button>
-        <p class="hint">Escribe entre 0 y 10, puedes usar decimales (ej. 7.5). Si votas de nuevo con el mismo nombre, actualiza tu voto anterior.</p>
-      </div>
-    </div>
-    <div id="vthanks" style="display:none;padding:1rem 1.25rem;background:#fff;border:1px solid var(--gb);font-size:14px;margin-bottom:1rem">
-      <span style="color:#1D9E75;font-weight:700;font-size:16px">Voto guardado!</span><br>
-      <span style="color:var(--gm);font-size:13px">El leaderboard se ha actualizado. Puedes ver los resultados en la pestaña Leaderboard.</span>
-    </div>
-    <div style="padding:1rem 1.25rem;background:#fff;border:1px solid var(--gb)">
-      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gm);margin-bottom:.5rem">Han votado para <span id="vrest-name"></span></div>
-      <div id="voted-list"></div>
-    </div>`;
+  document.getElementById('panel-vote').innerHTML=
+    '<p style="font-size:13px;color:var(--gm);margin-bottom:.75rem">Elige el restaurante y escribe tu nombre para votar. Puedes actualizar tu voto en cualquier momento.</p>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">'+data.map((d,i)=>'<button class="rpick '+(i===curVoteRest?'on':'')+'" onclick="pickVR('+i+')">'+d.name+' <span style="font-weight:400;font-size:11px;opacity:.8">'+d.date+'</span></button>').join('')+'</div>'+
+    '<div class="name-entry"><input id="vname" placeholder="Tu nombre (ej. Kata, Bernat...)" /><button onclick="startVote()">Continuar</button></div>'+
+    '<div id="vform" style="display:none"><div class="fc">'+
+    '<div class="fh" id="vftitle"></div>'+
+    '<div class="vch"><span></span><span>Precio</span><span>Comida</span><span>Vibes</span><span>Servicio</span></div>'+
+    '<div class="vrow"><div class="pn" id="vfname"></div>'+
+    '<input type="number" id="vp" min="0" max="10" step="0.5" placeholder="—">'+
+    '<input type="number" id="vc" min="0" max="10" step="0.5" placeholder="—">'+
+    '<input type="number" id="vv" min="0" max="10" step="0.5" placeholder="—">'+
+    '<input type="number" id="vs" min="0" max="10" step="0.5" placeholder="—">'+
+    '</div><button class="sbtn" id="submit-vote-btn" onclick="submitVote()">Guardar voto</button>'+
+    '<p class="hint">Entre 0 y 10, puedes usar decimales (ej. 7.5). Votar de nuevo con el mismo nombre actualiza tu voto.</p>'+
+    '</div></div>'+
+    '<div id="vthanks" style="display:none;padding:1rem 1.25rem;background:#fff;border:1px solid var(--gb);font-size:14px;margin-bottom:1rem">'+
+    '<span style="color:#1D9E75;font-weight:700;font-size:16px">Voto guardado!</span><br>'+
+    '<span style="color:var(--gm);font-size:13px">El leaderboard se ha actualizado. Puedes ver los resultados en la pestaña Leaderboard & Mapa.</span></div>'+
+    '<div style="padding:1rem 1.25rem;background:#fff;border:1px solid var(--gb)">'+
+    '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gm);margin-bottom:.5rem">Han votado para <span id="vrest-name"></span></div>'+
+    '<div id="voted-list"></div></div>';
   refreshVotedList();
 }
 
@@ -280,8 +285,8 @@ function refreshVotedList(){
   const r=state.restaurants[curVoteRest];
   document.getElementById('vrest-name').textContent=r.name;
   document.getElementById('voted-list').innerHTML=r.scores.length
-    ?r.scores.map(s=>`<span class="vchip">${s.name}</span>`).join('')
-    :`<span style="font-size:13px;color:var(--gm)">Nadie ha votado aún — sé el primero!</span>`;
+    ?r.scores.map(s=>'<span class="vchip">'+s.name+'</span>').join('')
+    :'<span style="font-size:13px;color:var(--gm)">Nadie ha votado aún — sé el primero!</span>';
 }
 
 function pickVR(i){curVoteRest=i;renderVote();}
@@ -291,7 +296,7 @@ function startVote(){
   if(!n){document.getElementById('vname').focus();return;}
   const r=state.restaurants[curVoteRest];
   const ex=r.scores.find(s=>s.name.toLowerCase()===n.toLowerCase());
-  document.getElementById('vftitle').innerHTML=`Votando: <strong>${r.name}</strong> · ${r.date}${ex?'<span class="vtag">actualizando voto</span>':''}`;
+  document.getElementById('vftitle').innerHTML='Votando: <strong>'+r.name+'</strong> · '+r.date+(ex?'<span class="vtag">actualizando voto</span>':'');
   document.getElementById('vfname').textContent=n;
   if(ex){document.getElementById('vp').value=ex.p;document.getElementById('vc').value=ex.c;document.getElementById('vv').value=ex.v;document.getElementById('vs').value=ex.s;}
   else{['vp','vc','vv','vs'].forEach(id=>document.getElementById(id).value='');}
@@ -299,15 +304,18 @@ function startVote(){
   document.getElementById('vthanks').style.display='none';
 }
 
-function submitVote(){
+async function submitVote(){
   const n=document.getElementById('vname').value.trim();
   if(!n)return;
   const vals=['vp','vc','vv','vs'].map(id=>parseFloat(document.getElementById(id).value));
   if(vals.some(x=>isNaN(x))){alert('Por favor rellena las 4 puntuaciones');return;}
+  const btn=document.getElementById('submit-vote-btn');
+  btn.textContent='Guardando...';btn.disabled=true;
   const r=state.restaurants[curVoteRest];
   r.scores=r.scores.filter(x=>x.name.toLowerCase()!==n.toLowerCase());
   r.scores.push({name:n,p:vals[0],c:vals[1],v:vals[2],s:vals[3]});
-  save();renderStats();renderLB();
+  await saveToBin();
+  renderStats();renderLB();
   document.getElementById('vform').style.display='none';
   document.getElementById('vthanks').style.display='block';
   refreshVotedList();
@@ -321,32 +329,31 @@ function renderMap(){
   } else {mapInst.eachLayer(l=>{if(l instanceof L.Marker)mapInst.removeLayer(l);});}
   data.forEach(r=>{
     const a=fmt(ravg(r));
-    const icon=L.divIcon({className:'',html:`<div style="background:#ED1C24;color:#fff;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Arial;font-weight:700;font-size:13px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">${a}</div>`,iconSize:[40,40],iconAnchor:[20,20]});
-    L.marker([r.lat,r.lng],{icon}).addTo(mapInst).bindPopup(`<b style="font-family:Arial">${r.name}</b><br><span style="font-family:Arial;font-size:12px;color:#666">${r.address}</span><br><span style="font-family:Arial;font-size:13px;color:#ED1C24;font-weight:700">Media: ${a}/10</span>`);
+    const icon=L.divIcon({className:'',html:'<div style="background:#ED1C24;color:#fff;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Arial;font-weight:700;font-size:13px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">'+a+'</div>',iconSize:[40,40],iconAnchor:[20,20]});
+    L.marker([r.lat,r.lng],{icon}).addTo(mapInst).bindPopup('<b style="font-family:Arial">'+r.name+'</b><br><span style="font-family:Arial;font-size:12px;color:#666">'+r.address+'</span><br><span style="font-family:Arial;font-size:13px;color:#ED1C24;font-weight:700">Media: '+a+'/10</span>');
   });
-  document.getElementById('legrows').innerHTML=data.map(r=>`<div class="legrow"><div class="legdot"></div><div><div class="legname">${r.name}</div><div class="legaddr">${r.address}</div></div><div class="legscore">${fmt(ravg(r))} / 10</div></div>`).join('');
+  document.getElementById('legrows').innerHTML=data.map(r=>'<div class="legrow"><div class="legdot"></div><div><div class="legname">'+r.name+'</div><div class="legaddr">'+r.address+'</div></div><div class="legscore">'+fmt(ravg(r))+' / 10</div></div>').join('');
   setTimeout(()=>mapInst.invalidateSize(),200);
 }
 
 function renderAdd(){
-  document.getElementById('panel-add').innerHTML=`
-    <div class="fc">
-      <div class="fh">Detalles del nuevo restaurante</div>
-      <div class="fg">
-        <div class="fgrp"><label>Nombre *</label><input id="fn" placeholder="ej. Bar Cañete"></div>
-        <div class="fgrp"><label>Fecha *</label><input id="fd" placeholder="Julio 2026"></div>
-        <div class="fgrp"><label>Dirección</label><input id="fa" placeholder="Calle, número, Barcelona"></div>
-        <div class="fgrp"><label>Organizador</label><input id="fo" placeholder="Quién lo organizó"></div>
-        <div class="fgrp"><label>Latitud (para el mapa)</label><input id="flat" placeholder="41.3851" type="number" step="any"></div>
-        <div class="fgrp"><label>Longitud (para el mapa)</label><input id="flng" placeholder="2.1734" type="number" step="any"></div>
-      </div>
-      <p class="hint">Una vez creado, el equipo puede votar desde la pestaña <strong>Votar</strong>.<br>Para el mapa: busca el restaurante en Google Maps → clic derecho → copia las coordenadas (ej. 41.3892, 2.1687).</p>
-      <button class="sbtn" onclick="submitAdd()">Crear restaurante</button>
-      <span id="add-ok" style="display:none;margin-left:12px;font-size:13px;color:#1D9E75;font-weight:700">Creado! Ve a la pestaña Votar para añadir puntuaciones.</span>
-    </div>`;
+  document.getElementById('panel-add').innerHTML=
+    '<div class="fc"><div class="fh">Detalles del nuevo restaurante</div>'+
+    '<div class="fg">'+
+    '<div class="fgrp"><label>Nombre *</label><input id="fn" placeholder="ej. Bar Cañete"></div>'+
+    '<div class="fgrp"><label>Fecha *</label><input id="fd" placeholder="Julio 2026"></div>'+
+    '<div class="fgrp"><label>Dirección</label><input id="fa" placeholder="Calle, número, Barcelona"></div>'+
+    '<div class="fgrp"><label>Organizador</label><input id="fo" placeholder="Quién lo organizó"></div>'+
+    '<div class="fgrp"><label>Latitud (para el mapa)</label><input id="flat" placeholder="41.3851" type="number" step="any"></div>'+
+    '<div class="fgrp"><label>Longitud (para el mapa)</label><input id="flng" placeholder="2.1734" type="number" step="any"></div>'+
+    '</div>'+
+    '<p class="hint">Una vez creado, el equipo puede votar desde la pestaña <strong>Votar</strong>.<br>Para el mapa: busca el restaurante en Google Maps → clic derecho → copia las coordenadas.</p>'+
+    '<button class="sbtn" onclick="submitAdd()">Crear restaurante</button>'+
+    '<span id="add-ok" style="display:none;margin-left:12px;font-size:13px;color:#1D9E75;font-weight:700">Creado! Ve a Votar para añadir puntuaciones.</span>'+
+    '</div>';
 }
 
-function submitAdd(){
+async function submitAdd(){
   const name=document.getElementById('fn').value.trim();
   if(!name){alert('Escribe el nombre del restaurante');return;}
   state.restaurants.push({
@@ -358,12 +365,11 @@ function submitAdd(){
     lng:parseFloat(document.getElementById('flng').value)||2.173,
     scores:[]
   });
-  save();renderStats();renderLB();
+  await saveToBin();renderStats();renderLB();
   if(mapInst){mapInst.remove();mapInst=null;}
   document.getElementById('add-ok').style.display='inline';
   setTimeout(()=>document.getElementById('add-ok').style.display='none',4000);
-  document.getElementById('fn').value='';document.getElementById('fd').value='';
-  document.getElementById('fa').value='';document.getElementById('fo').value='';
+  ['fn','fd','fa','fo'].forEach(id=>document.getElementById(id).value='');
 }
 
 function showTab(t,btn){
@@ -377,7 +383,7 @@ function showTab(t,btn){
   if(t==='lb')renderMap();
 }
 
-initNext();renderStats();renderLB();setTimeout(renderMap,200);
+loadFromBin();
 </script>
 </body>
 </html>
